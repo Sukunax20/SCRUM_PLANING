@@ -44,6 +44,46 @@ EXEC [SQM_SECURITY].[USP_Users]
     @o_MensajeTecnico = @MensajeTecnico OUTPUT;
 
 
+EXEC [SQM_GENERAL].[USP_ProductBacklogItems]
+    @PBISummary = 'Crear Modulo De Usuarios',
+    @PBIDescription = 'Desarrollar El Modulo',
+    @PBIIsAcceptanceCriteria = 'El Modulo Debe Funcionar Correctamente',
+    @PBIOwner = 1,
+    @PBIParentLink = 1,
+    @PBIStoryPoint = 5,
+    @PBIPriority = 1,
+    @PBICreatorId = 1,
+    @PBIStatus = 1,
+    @Accion = 'I'
+
+EXEC [SQM_CATALOGOS].[USP_Status]
+    @Accion = 'S',
+    @PageNumber = 1,
+    @RowsPerPage = 10
+
+EXEC [SQM_SECURITY].[USP_Roles]
+    @Accion = 'S',
+    @PageNumber = 1
+
+EXEC [SQM_CATALOOS].[USP_BusinessValues]
+    @Accion = 'S',
+    @PageNumber = 1,
+    @RowsPerPage = 10
+
+EXEC [SQM_CATALOGOS].[USP_ActivityTypes]
+    @Accion = 'S',
+    @PageNumber = 1,
+    @RowsPerPage = 10
+
+
+EXEC [SQM_GENERAL].[USP_TaskComments]
+    @taskCommentParentLink = 1,
+    @taskCommentOwner = 1,
+    @taskCommentText = N'Comentario De Prueba',
+    @taskCommentCreatorId = 1,
+    @taskCommentStatus = 1,
+    @Accion = 'I'
+
 -- EXEC [SQM_SECURITY].[USP_Users]
 --     @w_Accion = 'X',
 --     @o_Numero = @Numero OUTPUT,
