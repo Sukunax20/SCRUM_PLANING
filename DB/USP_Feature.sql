@@ -1,142 +1,333 @@
 USE [DB_SCRUM_PLANNING]
 GO
 
-CREATE OR ALTER PROCEDURE [SQM_GENERAL].[USP_Features]
-    @Accion CHAR(1),
-    @FeatureId INT = NULL,
-    @Resumen VARCHAR(500) = NULL,
-    @Descripcion VARCHAR(2000) = NULL,
-    @Criterios VARCHAR(4000) = NULL,
-    @EpicId INT = NULL,
-    @ResponsableId INT = NULL,
-    @FechaInicio DATE = NULL,
-    @FechaLimite DATE = NULL,
-    @PrioridadId INT = NULL,
-    @UsuarioId INT = NULL,
-    @EstadoId INT = NULL,
-    @NumPagina INT = 1,
-    @Filas INT = 10
+CREATE PROCEDURE [SQM_GENERAL].[USP_ManageFeatures]
+    @w_Accion CHAR(1),
+    @i_featureId INT = NULL,
+    @i_featureSummary VARCHAR(500) = NULL,
+    @i_featureDescription VARCHAR(2000) = NULL,
+    @i_featuresAcceptanceCriteria VARCHAR(4000) = NULL,
+    @i_featureParentLink INT = NULL,
+    @i_featureOwner INT = NULL,
+    @i_featureStartDate DATE = NULL,
+    @i_featureDueDate DATE = NULL,
+    @i_featurePriority INT = NULL,
+    @i_featureCreationDate DATETIME = NULL,
+    @i_featureCreatorId INT = NULL,
+    @i_featureModificationDate DATETIME = NULL,
+    @i_featureModificatorId INT = NULL,
+    @i_featureStatus INT = NULL,
+    @i_PageNumber INT = 1,
+    @i_RowsPerPage INT = 10,
+    @o_Numero INT = OUTPUT,
+    @o_MensajeUsuario VARCHAR(150) = OUTPUT,
+    @o_MensajeTecnico VARCHAR(MAX) = OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
 
-    IF @Accion = 'S'
+    SET @o_Numero = 0;
+    SET @o_MensajeUsuario = '';
+    SET @o_MensajeTecnico = '';
+ 
+    IF @i_featureCreationDate IS NULL
+        SET @i_featureCreationDate=GETDATE();
+
+    IF @i_featureModificationDate IS NULL
+        SET @i_featureModificationDate=GETDATE();
+
+    IF @w_Accion = 'I'
     BEGIN
-        IF @NumPagina < 1 OR @Filas < 1
+        IF ISNULL(@i_featureSummary,'')=''
         BEGIN
-            PRINT 'La pagina y las filas deben ser mayores que cero.';
-        END;
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL RESUMEN DE LA FEATURE ES OBLIGATORIO';
+            RETURN;
+        END
 
-        OPEN SYMMETRIC KEY [KEY_HASH]
-        DECRYPTION BY CERTIFICATE [CERT_SCRUMPLANNING];
+        ELSE IF ISNULL(@i_featureDescription,'')=''
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'LA DESCRIPCION DE LA FEATURE ES OBLIGATORIA';
+            RETURN;
+        END
 
-        SELECT
-            featureId,
-            CONVERT(VARCHAR(500),
-                DecryptByKey(featureSummary)) AS featureSummary,
-            CONVERT(VARCHAR(2000),
-                DecryptByKey(featureDescription)) AS featureDescription,
-            CONVERT(VARCHAR(4000),
-                DecryptByKey(featuresAcceptanceCriteria))
-                AS featuresAcceptanceCriteria,
-            featureParentLink,
-            featureOwner,
-            featureStartDate,
-            featureDueDate,
-            featurePriority,
-            featureCreationDate,
-            featureCreatorId,
-            featureModificationDate,
-            featureModifierId,
-            featureStatus
-        FROM [SQM_GENERAL].[TBL_Features]
-        ORDER BY featureId DESC
-        OFFSET (@NumPagina - 1) * @Filas ROWS
-        FETCH NEXT @Filas ROWS ONLY;
+        ELSE IF ISNULL(@i_featuresAcceptanceCriteria,'')=''
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'LOS CRITERIOS DE ACEPTACION SON OBLIGATORIOS';
+            RETURN;
+        END
 
-        CLOSE SYMMETRIC KEY [KEY_HASH];
+        ELSE IF ISNULL(@i_featureParentLink,0)=0
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario ='EL PARENT LINK DE LA EPICA ES OBLIGATORIO';
+            RETURN;
+        END
+
+        ELSE IF ISNULL(@i_featureOwner,0)=0
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL DUEÑO DE LA FEATURE ES OBLIGATORIO';
+            RETURN;
+        END
+
+        ELSE IF ISNULL(@i_featureCreatorId,0)=0
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL ID DEL CREADOR ES OBLIGATORIO';
+            RETURN;
+        END
+
+        ELSE IF ISNULL(@i_featureStatus,0)=0
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL ESTADO DE LA FEATURE ES OBLIGATORIO';
+            RETURN;
+        END
+
+        ELSE IF EXISTS (SELECT 1 FROM [SQM_GENERAL].[TBL_Features] (NOLOCK) WHERE featureSummary=@i_featureSummary AND featureParentLink=@i_featureParentLink)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL RESUMEN DE LA FEATURE YA EXISTE EN ESTA EPICA';
+            RETURN;
+        END
+
+        ELSE IF NOT EXISTS (SELECT 1 FROM [SQM_GENERAL].[TBL_Epics] (NOLOCK) WHERE epicId=@i_featureParentLink)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'LA EPICA REFERENCIADA NO EXISTE';
+            RETURN;
+        END
+
+        ELSE IF NOT EXISTS (SELECT 1 FROM [SQM_SECURITY].[TBL_Users] (NOLOCK) WHERE userId=@i_featureOwner AND userEnable=1)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL USUARIO DUEÑO NO EXISTE O NO ESTÁ ACTIVO';
+            RETURN;
+        END
+
+        ELSE IF NOT EXISTS (SELECT 1 FROM [SQM_SECURITY].[TBL_Users] (NOLOCK) WHERE userId=@i_featureCreatorId AND userEnable=1)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL USUARIO CREADOR NO EXISTE O NO ESTÁ ACTIVO';
+            RETURN;
+        END
+
+        ELSE IF @i_featurePriority IS NOT NULL AND NOT EXISTS (SELECT 1 FROM [SQM_CATALOGS].[TBL_Priorities] (NOLOCK) WHERE priorityId=@i_featurePriority)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'LA PRIORIDAD ASIGNADA NO EXISTE';
+            RETURN;
+        END
+
+        ELSE IF NOT EXISTS (SELECT 1 FROM [SQM_CATALOGS].[TBL_Status] (NOLOCK) WHERE statusId=@i_featureStatus)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL ESTADO ASIGNADO NO EXISTE';
+            RETURN;
+        END
+
+        BEGIN TRY
+            BEGIN TRANSACTION;
+
+            INSERT INTO [SQM_GENERAL].[TBL_Features]
+            (
+                featureSummary,
+                featureDescription,
+                featuresAcceptanceCriteria,
+                featureParentLink,
+                featureOwner,
+                featureStartDate,
+                featureDueDate,
+                featurePriority,
+                featureCreationDate,
+                featureCreatorId,
+                featureModificationDate,
+                featureModificatorId,
+                featureStatus
+            )
+            VALUES
+            (
+                @i_featureSummary,
+                @i_featureDescription,
+                @i_featuresAcceptanceCriteria,
+                @i_featureParentLink,
+                @i_featureOwner,
+                @i_featureStartDate,
+                @i_featureDueDate,
+                @i_featurePriority,
+                @i_featureCreationDate,
+                @i_featureCreatorId,
+                NULL,
+                NULL,
+                @i_featureStatus
+            );
+
+            COMMIT TRANSACTION;
+
+            SET @o_Numero = 200;
+            SET @o_MensajeUsuario = 'REGISTRO INSERTADO CORRECTAMENTE';
+        END TRY
+        BEGIN CATCH
+            IF @@TRANCOUNT>0
+                ROLLBACK TRANSACTION;
+
+            SET @o_Numero = 500;
+            SET @o_MensajeUsuario = 'ERROR AL INSERTAR LA FEATURE';
+            SET @o_MensajeTecnico = CONCAT_WS(' - ','ERROR AL INSERTAR',ERROR_PROCEDURE(),ERROR_LINE(),ERROR_MESSAGE());
+        END CATCH
     END
 
-    ELSE IF @Accion = 'I'
+    ELSE IF @w_Accion = 'U'
     BEGIN
-        OPEN SYMMETRIC KEY [KEY_HASH]
-        DECRYPTION BY CERTIFICATE [CERT_SCRUMPLANNING];
+        IF ISNULL(@i_featureId,0) = 0
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL ID DE LA FEATURE ES OBLIGATORIO';
+            RETURN;
+        END
 
-        INSERT INTO [SQM_GENERAL].[TBL_Features]
-        (
-            featureSummary,
-            featureDescription,
-            featuresAcceptanceCriteria,
-            featureParentLink,
-            featureOwner,
-            featureStartDate,
-            featureDueDate,
-            featurePriority,
-            featureCreationDate,
-            featureCreatorId,
-            featureStatus
-        )
-        VALUES
-        (
-            EncryptByKey(
-                KEY_GUID('KEY_HASH'),
-                CONVERT(VARBINARY(MAX), @Resumen)
-            ),
-            EncryptByKey(
-                KEY_GUID('KEY_HASH'),
-                CONVERT(VARBINARY(MAX), @Descripcion)
-            ),
-            EncryptByKey(
-                KEY_GUID('KEY_HASH'),
-                CONVERT(VARBINARY(MAX), @Criterios)
-            ),
-            @EpicId,
-            @ResponsableId,
-            @FechaInicio,
-            @FechaLimite,
-            @PrioridadId,
-            GETDATE(),
-            @UsuarioId,
-            @EstadoId
-        );
+        ELSE IF ISNULL(@i_featureModificatorId,0) = 0
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL ID DEL MODIFICADOR ES OBLIGATORIO';
+            RETURN;
+        END
 
-        CLOSE SYMMETRIC KEY [KEY_HASH];
+        ELSE IF NOT EXISTS (SELECT 1 FROM [SQM_GENERAL].[TBL_Features] (NOLOCK) WHERE featureId=@i_featureId)
+        BEGIN
+            SET @o_Numero = 404;
+            SET @o_MensajeUsuario = 'LA FEATURE NO EXISTE';
+            RETURN;
+        END
+
+        ELSE IF NOT EXISTS (SELECT 1 FROM [SQM_SECURITY].[TBL_Users] (NOLOCK) WHERE userId=@i_featureModificatorId AND userEnable=1)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL USUARIO MODIFICADOR NO EXISTE O NO ESTÁ ACTIVO';
+            RETURN;
+        END
+
+        ELSE IF @i_featureParentLink IS NOT NULL AND NOT EXISTS (SELECT 1 FROM [SQM_GENERAL].[TBL_Epics] (NOLOCK) WHERE epicId=@i_featureParentLink)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'LA EPICA REFERENCIADA NO EXISTE';
+            RETURN;
+        END
+
+        ELSE IF @i_featureOwner IS NOT NULL AND NOT EXISTS (SELECT 1 FROM [SQM_SECURITY].[TBL_Users] (NOLOCK) WHERE userId=@i_featureOwner AND userEnable=1)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL USUARIO DUEÑO NO EXISTE O NO ESTÁ ACTIVO';
+            RETURN;
+        END
+
+        ELSE IF @i_featurePriority IS NOT NULL AND NOT EXISTS (SELECT 1 FROM [SQM_CATALOGS].[TBL_Priorities] (NOLOCK) WHERE priorityId=@i_featurePriority)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'LA PRIORIDAD ASIGNADA NO EXISTE';
+            RETURN;
+        END
+
+        ELSE IF @i_featureStatus IS NOT NULL AND NOT EXISTS (SELECT 1 FROM [SQM_CATALOGS].[TBL_Status] (NOLOCK) WHERE statusId=@i_featureStatus)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL ESTADO ASIGNADO NO EXISTE';
+            RETURN;
+        END
+
+        ELSE IF @i_featureSummary IS NOT NULL AND EXISTS (SELECT 1 FROM [SQM_GENERAL].[TBL_Features] (NOLOCK) WHERE featureSummary=@i_featureSummary AND featureParentLink=ISNULL(@i_featureParentLink,featureParentLink) AND featureId<>@i_featureId)
+        BEGIN
+            SET @o_Numero = 400;
+            SET @o_MensajeUsuario = 'EL RESUMEN DE LA FEATURE YA EXISTE EN ESTA EPICA';
+            RETURN;
+        END
+
+        BEGIN TRY
+            BEGIN TRANSACTION;
+
+            UPDATE [SQM_GENERAL].[TBL_Features]
+            SET featureSummary = ISNULL(@i_featureSummary,featureSummary),
+                featureDescription = ISNULL(@i_featureDescription,featureDescription),
+                featuresAcceptanceCriteria = ISNULL(@i_featuresAcceptanceCriteria,featuresAcceptanceCriteria),
+                featureParentLink = ISNULL(@i_featureParentLink,featureParentLink),
+                featureOwner = ISNULL(@i_featureOwner,featureOwner),
+                featureStartDate = ISNULL(@i_featureStartDate,featureStartDate),
+                featureDueDate = ISNULL(@i_featureDueDate,featureDueDate),
+                featurePriority = ISNULL(@i_featurePriority,featurePriority),
+                featureModificationDate = @i_featureModificationDate,
+                featureModificatorId = @i_featureModificatorId,
+                featureStatus = ISNULL(@i_featureStatus,featureStatus)
+            WHERE featureId = @i_featureId;
+
+            COMMIT TRANSACTION;
+
+            SET @o_Numero = 200;
+            SET @o_MensajeUsuario = 'REGISTRO ACTUALIZADO CORRECTAMENTE';
+        END TRY
+        BEGIN CATCH
+            IF @@TRANCOUNT>0
+                ROLLBACK TRANSACTION;
+
+            SET @o_Numero = 500;
+            SET @o_MensajeUsuario = 'ERROR AL ACTUALIZAR LA FEATURE';
+            SET @o_MensajeTecnico=CONCAT_WS(' - ','ERROR AL ACTUALIZAR',ERROR_PROCEDURE(),ERROR_LINE(),ERROR_MESSAGE());
+        END CATCH
     END
 
-    ELSE IF @Accion = 'U'
+    ELSE IF @w_Accion = 'S'
     BEGIN
-        OPEN SYMMETRIC KEY [KEY_HASH]
-        DECRYPTION BY CERTIFICATE [CERT_SCRUMPLANNING];
+        BEGIN TRY
+            DECLARE @w_totalRows INT = 0;
 
-        UPDATE [SQM_GENERAL].[TBL_Features]
-        SET
-            featureSummary = EncryptByKey(
-                KEY_GUID('KEY_HASH'),
-                CONVERT(VARBINARY(MAX), @Resumen)
-            ),
-            featureDescription = EncryptByKey(
-                KEY_GUID('KEY_HASH'),
-                CONVERT(VARBINARY(MAX), @Descripcion)
-            ),
-            featuresAcceptanceCriteria = EncryptByKey(
-                KEY_GUID('KEY_HASH'),
-                CONVERT(VARBINARY(MAX), @Criterios)
-            ),
-            featureParentLink = @EpicId,
-            featureOwner = @ResponsableId,
-            featureStartDate = @FechaInicio,
-            featureDueDate = @FechaLimite,
-            featurePriority = @PrioridadId,
-            featureModificationDate = GETDATE(),
-            featureModifierId = @UsuarioId,
-            featureStatus = @EstadoId
-        WHERE featureId = @FeatureId;
+            SELECT 
+                featureId,
+                featureSummary,
+                featureDescription,
+                featuresAcceptanceCriteria,
+                featureParentLink,
+                featureOwner,
+                featureStartDate,
+                featureDueDate,
+                featurePriority,
+                featureCreationDate,
+                featureCreatorId,
+                featureModificationDate,
+                featureModificatorId,
+                featureStatus
+            FROM [SQM_GENERAL].[TBL_Features] (NOLOCK)
+            ORDER BY featureId
+            OFFSET (@i_PageNumber-1)*@i_RowsPerPage ROWS
+            FETCH NEXT @i_RowsPerPage ROWS ONLY;
 
-        CLOSE SYMMETRIC KEY [KEY_HASH];
+            SET @w_totalRows = @@ROWCOUNT;
+
+            IF (@w_totalRows>0)
+            BEGIN
+                SET @o_Numero = 200;
+                SET @o_MensajeUsuario = 'REGISTROS LISTADOS CORRECTAMENTE';
+            END
+            ELSE
+            BEGIN
+                SET @o_Numero = 204;
+                SET @o_MensajeUsuario = 'NO HAY MAS REGISTROS PARA LISTAR';
+            END
+        END TRY
+        BEGIN CATCH
+            SET @o_Numero = 500;
+            SET @o_MensajeUsuario = 'ERROR AL LISTAR LAS FEATURES';
+            SET @o_MensajeTecnico = CONCAT_WS(' - ','ERROR AL LISTAR FEATURES',ERROR_PROCEDURE(),ERROR_LINE(),ERROR_MESSAGE());
+        END CATCH
     END
+
     ELSE
     BEGIN
-        PRINT 'Accion no valida. Use I, U o S.';
+        SET @o_Numero = 405;
+        SET @o_MensajeUsuario = 'METODO NO HABILITADO';
+        SET @o_MensajeTecnico = 'EL PROCEDIMIENTO ALMACENADO NO TIENE HABILITADA ESA OPCION';
     END
 END;
 GO
