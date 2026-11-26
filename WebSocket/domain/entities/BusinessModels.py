@@ -11,6 +11,9 @@ class BusinessValueBase(BaseModel):
     businessValueModificatorId: Optional[int] = None
     businessValueEnable: bool
 
+class LtsBusiness(BaseModel):
+    business: List[BusinessValueBase]
+
 class BusinessValueCreate(BaseModel):
     businessValueName: str
     businessValueCreatorId: int

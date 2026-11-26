@@ -10,7 +10,7 @@ class ActivityTypeRepository:
         o_Mensaje = ""
 
         cursor.execute("""
-            EXEC [SQM_CATALOGS].[USP_ManageActivityTypes]
+            EXEC [SQM_CATALOGS].[USP_ActivityTypes]
                 @i_activityTypeName = ?,
                 @i_activityTypeCreatorId = ?,
                 @i_activityTypeEnable = ?,
@@ -40,7 +40,7 @@ class ActivityTypeRepository:
         o_Mensaje = ""
 
         cursor.execute("""
-            EXEC [SQM_CATALOGS].[USP_ManageActivityTypes]
+            EXEC [SQM_CATALOGS].[USP_ActivityTypes]
                 @i_activityTypeId = ?,
                 @i_activityTypeName = ?,
                 @i_activityTypeModificatorId = ?,
@@ -72,7 +72,7 @@ class ActivityTypeRepository:
         o_Mensaje = ""
 
         cursor.execute("""
-            EXEC [SQM_CATALOGS].[USP_ManageActivityTypes]
+            EXEC [SQM_CATALOGS].[USP_ActivityTypes]
                 @i_PageNumber = ?,
                 @i_RowsPerPage = ?,
                 @w_Accion = 'S',

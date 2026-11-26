@@ -11,6 +11,9 @@ class StatusBase(BaseModel):
     statusModificatorId: Optional[int] = None
     statusEnable: bool
 
+class LtsStatus(BaseModel):
+    status: List[StatusBase]
+
 class StatusCreate(BaseModel):
     statusName: str
     statusCreationDate: datetime

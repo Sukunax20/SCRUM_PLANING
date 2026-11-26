@@ -13,6 +13,8 @@ class UserBase(BaseModel):
     userModificatorId: Optional[int] = None
     userEnable: bool
 
+class LtsUsers(BaseModel):
+    users: List[UserBase]
 
 class UserCreate(BaseModel):
     userFullName: str
@@ -31,6 +33,3 @@ class UserUpdate(BaseModel):
     userModificatorId: int
     userEnable: Optional[bool] = None
 
-
-class LtsUsers(BaseModel):
-    users: List[UserBase]

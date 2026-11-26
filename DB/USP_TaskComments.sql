@@ -1,7 +1,7 @@
 USE [DB_SCRUM_PLANNING]
 GO
 
-CREATE PROCEDURE [SQM_GENERAL].[USP_ManageTaskComments]
+CREATE PROCEDURE [SQM_GENERAL].[USP_TaskComments]
     @i_taskCommentId INT = NULL,
     @i_taskCommentParentLink INT = NULL,
     @i_taskCommentOwner INT = NULL,

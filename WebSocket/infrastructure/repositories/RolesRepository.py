@@ -10,7 +10,7 @@ class RolRepository:
         o_Mensaje = ""
 
         cursor.execute("""
-            EXEC [SQM_SECURITY].[USP_ManageRoles]
+            EXEC [SQM_SECURITY].[USP_Roles]
                 @i_rolName = ?,
                 @i_rolCreatorId = ?,
                 @i_rolEnable = ?,
@@ -40,7 +40,7 @@ class RolRepository:
         o_Mensaje = ""
 
         cursor.execute("""
-            EXEC [SQM_SECURITY].[USP_ManageRoles]
+            EXEC [SQM_SECURITY].[USP_Roles]
                 @i_rolId = ?,
                 @i_rolName = ?,
                 @i_rolModificatorId = ?,
@@ -72,7 +72,7 @@ class RolRepository:
         o_Mensaje = ""
 
         cursor.execute("""
-            EXEC [SQM_SECURITY].[USP_ManageRoles]
+            EXEC [SQM_SECURITY].[USP_Roles]
                 @i_PageNumber = ?,
                 @i_RowsPerPage = ?,
                 @w_Accion = 'S',

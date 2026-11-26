@@ -11,6 +11,9 @@ class RolBase(BaseModel):
     rolModificatorId: Optional[int] = None
     rolEnable: bool
 
+class LtsRoles(BaseModel):
+    rol: List[RolBase]
+
 class RolCreate(BaseModel):
     rolName: str
     rolCreatorId: int

@@ -21,6 +21,9 @@ class TaskBase(BaseModel):
     taskModificatorId: Optional[int] = None
     taskStatus: int
 
+class LtsTask(BaseModel):
+    task: List[TaskBase]
+
 class TaskCreate(BaseModel):
     taskSummary: str
     taskDescription: str

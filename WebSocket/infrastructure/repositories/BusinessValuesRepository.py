@@ -10,7 +10,7 @@ class BusinessValueRepository:
         o_Mensaje = ""
 
         cursor.execute("""
-            EXEC [SQM_CATALOGS].[USP_ManageBusinessValues]
+            EXEC [SQM_CATALOGS].[USP_BusinessValues]
                 @i_businessValueName = ?,
                 @i_businessValueCreatorId = ?,
                 @i_businessValueEnable = ?,
@@ -40,7 +40,7 @@ class BusinessValueRepository:
         o_Mensaje = ""
 
         cursor.execute("""
-            EXEC [SQM_CATALOGS].[USP_ManageBusinessValues]
+            EXEC [SQM_CATALOGS].[USP_BusinessValues]
                 @i_businessValueId = ?,
                 @i_businessValueName = ?,
                 @i_businessValueModificatorId = ?,
@@ -72,7 +72,7 @@ class BusinessValueRepository:
         o_Mensaje = ""
 
         cursor.execute("""
-            EXEC [SQM_CATALOGS].[USP_ManageBusinessValues]
+            EXEC [SQM_CATALOGS].[USP_BusinessValues]
                 @i_PageNumber = ?,
                 @i_RowsPerPage = ?,
                 @w_Accion = 'S',

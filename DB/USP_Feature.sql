@@ -1,7 +1,7 @@
 USE [DB_SCRUM_PLANNING]
 GO
 
-CREATE PROCEDURE [SQM_GENERAL].[USP_ManageFeatures]
+CREATE PROCEDURE [SQM_GENERAL].[USP_Features]
     @w_Accion CHAR(1),
     @i_featureId INT = NULL,
     @i_featureSummary VARCHAR(500) = NULL,
